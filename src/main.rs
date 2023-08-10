@@ -27,8 +27,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut languages = Languages::new();
 
     if let Some(input) = cli.file_input() {
-        if !add_input(input, &mut languages) {
-            Cli::print_input_parse_failure(input);
+        if !add_input(&input, &mut languages) {
+            Cli::print_input_parse_failure(&input);
             process::exit(1);
         }
     }
@@ -102,11 +102,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut languages: Vec<_> = languages.iter().collect();
 
         match sort_category {
-            Sort::Blanks => languages.sort_by(|a, b| b.1.blanks.cmp(&a.1.blanks)),
-            Sort::Comments => languages.sort_by(|a, b| b.1.comments.cmp(&a.1.comments)),
+            Sort::Blanks => {
+                languages.sort_by(|a, b| b.1.blanks.cmp(&a.1.blanks))
+            }
+            Sort::Comments => {
+                languages.sort_by(|a, b| b.1.comments.cmp(&a.1.comments))
+            }
             Sort::Code => languages.sort_by(|a, b| b.1.code.cmp(&a.1.code)),
-            Sort::Files => languages.sort_by(|a, b| b.1.reports.len().cmp(&a.1.reports.len())),
-            Sort::Lines => languages.sort_by(|a, b| b.1.lines().cmp(&a.1.lines())),
+            Sort::Files => languages
+                .sort_by(|a, b| b.1.reports.len().cmp(&a.1.reports.len())),
+            Sort::Lines => {
+                languages.sort_by(|a, b| b.1.lines().cmp(&a.1.lines()))
+            }
         }
 
         if cli.sort_reverse {

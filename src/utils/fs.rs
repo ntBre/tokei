@@ -13,7 +13,7 @@ const IGNORE_FILE: &str = ".tokeignore";
 
 pub fn get_all_files<A: AsRef<Path>>(
     paths: &[A],
-    ignored_directories: &[&str],
+    ignored_directories: &[String],
     languages: &mut BTreeMap<LanguageType, Language>,
     config: &Config,
 ) {

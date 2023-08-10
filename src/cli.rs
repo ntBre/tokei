@@ -2,12 +2,13 @@ use std::mem;
 use std::process;
 
 use clap::Arg;
+use clap::ArgAction;
 use clap::{crate_description, ArgMatches};
 use colored::Colorize;
 use tokei::{Config, LanguageType, Sort};
 
 use crate::{
-    cli_utils::{crate_version, parse_or_exit, NumberFormatStyle},
+    cli_utils::{crate_version, NumberFormatStyle},
     input::Format,
 };
 
@@ -55,8 +56,9 @@ pub struct Cli {
 
 impl Cli {
     pub fn from_args() -> Self {
-        let matches = clap::App::new("tokei")
-            .version(&*crate_version())
+        let version = crate_version().leak();
+        let matches = clap::Command::new("tokei")
+            .version(&*version)
             .author("Erin P. <xampprocky@gmail.com> + Contributors")
             .about(concat!(
                 crate_description!(),
@@ -67,7 +69,6 @@ impl Cli {
                 Arg::new("columns")
                     .long("columns")
                     .short('c')
-                    .takes_value(true)
                     .conflicts_with("output")
                     .help(
                         "Sets a strict column width of the output, only available for \
@@ -78,21 +79,20 @@ impl Cli {
                 Arg::new("exclude")
                     .long("exclude")
                     .short('e')
-                    .takes_value(true)
-                    .multiple_values(true)
+                    .num_args(0..)
                     .help("Ignore all files & directories matching the pattern."),
             )
             .arg(
                 Arg::new("files")
                     .long("files")
                     .short('f')
+                    .action(ArgAction::SetTrue)
                     .help("Will print out statistics on individual files."),
             )
             .arg(
                 Arg::new("file_input")
                     .long("input")
                     .short('i')
-                    .takes_value(true)
                     .help(
                         "Gives statistics from a previous tokei run. Can be given a file path, \
                         or \"stdin\" to read from stdin.",
@@ -101,11 +101,12 @@ impl Cli {
             .arg(
                 Arg::new("hidden")
                     .long("hidden")
+                    .action(ArgAction::SetTrue)
                     .help("Count hidden files."),
             )
             .arg(
                 Arg::new("input")
-                    .min_values(1)
+                    .num_args(1..)
                     .conflicts_with("languages")
                     .help("The path(s) to the file or directory to be counted.(default current directory)"),
             )
@@ -113,22 +114,28 @@ impl Cli {
                 Arg::new("languages")
                     .long("languages")
                     .short('l')
+                    .action(ArgAction::SetTrue)
                     .conflicts_with("input")
                     .help("Prints out supported languages and their extensions."),
             )
-            .arg(Arg::new("no_ignore").long("no-ignore").help(
-                "Don't respect ignore files (.gitignore, .ignore, etc.). This implies \
+            .arg(Arg::new("no_ignore")
+                .action(ArgAction::SetTrue)
+                .long("no-ignore").help(
+                    "Don't respect ignore files (.gitignore, .ignore, etc.). This implies \
                 --no-ignore-parent, --no-ignore-dot, and --no-ignore-vcs.",
-            ))
-            .arg(Arg::new("no_ignore_parent").long("no-ignore-parent").help(
+                ))
+            .arg(
+                Arg::new("no_ignore_parent")
+                .action(ArgAction::SetTrue)
+                    .long("no-ignore-parent").help(
                 "Don't respect ignore files (.gitignore, .ignore, etc.) in parent \
                 directories.",
             ))
-            .arg(Arg::new("no_ignore_dot").long("no-ignore-dot").help(
+            .arg(Arg::new("no_ignore_dot").long("no-ignore-dot").action(ArgAction::SetTrue).help(
                 "Don't respect .ignore and .tokeignore files, including this in \
                 parent directories.",
             ))
-            .arg(Arg::new("no_ignore_vcs").long("no-ignore-vcs").help(
+            .arg(Arg::new("no_ignore_vcs").long("no-ignore-vcs").action(ArgAction::SetTrue).help(
                 "Don't respect VCS ignore files (.gitignore, .hgignore, etc.) including \
                 those in parent directories.",
             ))
@@ -136,8 +143,7 @@ impl Cli {
                 Arg::new("output")
                     .long("output")
                     .short('o')
-                    .takes_value(true)
-                    .possible_values(Format::all())
+                    .value_parser(Format::all().to_vec())
                     .help(
                         "Outputs Tokei in a specific format. Compile with additional features for \
                         more format support.",
@@ -146,8 +152,7 @@ impl Cli {
             .arg(
                 Arg::new("streaming")
                     .long("streaming")
-                    .takes_value(true)
-                    .possible_values(&["simple", "json"])
+                    .value_parser(["simple", "json"])
                     .ignore_case(true)
                     .help(
                         "prints the (language, path, lines, blanks, code, comments) records as \
@@ -158,8 +163,8 @@ impl Cli {
                 Arg::new("sort")
                     .long("sort")
                     .short('s')
-                    .takes_value(true)
-                    .possible_values(&["files", "lines", "blanks", "code", "comments"])
+                    .value_parser(["files", "lines", "blanks", "code", "comments"])
+                    .action(ArgAction::Set)
                     .ignore_case(true)
                     .conflicts_with("rsort")
                     .help("Sort languages based on column"),
@@ -168,8 +173,8 @@ impl Cli {
                 Arg::new("rsort")
                     .long("rsort")
                     .short('r')
-                    .takes_value(true)
-                    .possible_values(&["files", "lines", "blanks", "code", "comments"])
+                    .value_parser(["files", "lines", "blanks", "code", "comments"])
+                    .action(ArgAction::Set)
                     .ignore_case(true)
                     .conflicts_with("sort")
                     .help("Reverse sort languages based on column"),
@@ -178,7 +183,6 @@ impl Cli {
                 Arg::new("types")
                     .long("types")
                     .short('t')
-                    .takes_value(true)
                     .help(
                         "Filters output by language type, separated by a comma. i.e. \
                         -t=Rust,Markdown",
@@ -188,14 +192,14 @@ impl Cli {
                 Arg::new("compact")
                     .long("compact")
                     .short('C')
+                    .action(ArgAction::SetTrue)
                     .help("Do not print statistics about embedded languages."),
             )
             .arg(
                 Arg::new("num_format_style")
                     .long("num-format")
                     .short('n')
-                    .takes_value(true)
-                    .possible_values(NumberFormatStyle::all())
+                    .value_parser(NumberFormatStyle::all().to_vec())
                     .conflicts_with("output")
                     .help(
                         "Format of printed numbers, i.e., plain (1234, default), \
@@ -207,7 +211,7 @@ impl Cli {
                 Arg::new("verbose")
                     .long("verbose")
                     .short('v')
-                    .multiple_occurrences(true)
+                    .action(ArgAction::Count)
                     .help(
                         "Set log output level:
                         1: to show unknown file extensions,
@@ -217,26 +221,23 @@ impl Cli {
             )
             .get_matches();
 
-        let columns = matches.value_of("columns").map(parse_or_exit::<usize>);
-        let files = matches.is_present("files");
-        let hidden = matches.is_present("hidden");
-        let no_ignore = matches.is_present("no_ignore");
-        let no_ignore_parent = matches.is_present("no_ignore_parent");
-        let no_ignore_dot = matches.is_present("no_ignore_dot");
-        let no_ignore_vcs = matches.is_present("no_ignore_vcs");
-        let print_languages = matches.is_present("languages");
-        let verbose = matches.occurrences_of("verbose");
-        let compact = matches.is_present("compact");
-        let types = matches.value_of("types").map(|e| {
-            e.split(',')
-                .map(str::parse::<LanguageType>)
-                .filter_map(Result::ok)
-                .collect()
+        let columns = matches.get_one::<usize>("columns").cloned();
+        let files = matches.get_flag("files");
+        let hidden = matches.get_flag("hidden");
+        let no_ignore = matches.get_flag("no_ignore");
+        let no_ignore_parent = matches.get_flag("no_ignore_parent");
+        let no_ignore_dot = matches.get_flag("no_ignore_dot");
+        let no_ignore_vcs = matches.get_flag("no_ignore_vcs");
+        let print_languages = matches.get_flag("languages");
+        let verbose = matches.get_count("verbose") as u64;
+        let compact = matches.get_flag("compact");
+        let types = matches.get_one::<String>("types").map(|m| {
+            m.split(',').flat_map(str::parse::<LanguageType>).collect()
         });
 
         let num_format_style: NumberFormatStyle = matches
-            .value_of("num_format_style")
-            .map(parse_or_exit::<NumberFormatStyle>)
+            .get_one::<NumberFormatStyle>("num_format_style")
+            .cloned()
             .unwrap_or_default();
 
         let number_format = match num_format_style.get_format() {
@@ -249,19 +250,20 @@ impl Cli {
 
         // Sorting category should be restricted by clap but parse before we do
         // work just in case.
-        let sort = matches
-            .value_of("sort")
-            .or_else(|| matches.value_of("rsort"))
-            .map(parse_or_exit::<Sort>);
-        let sort_reverse = matches.value_of("rsort").is_some();
+        let sort = match matches.get_one::<Sort>("sort") {
+            Some(s) => Some(s.clone()),
+            None => match matches.get_one::<Sort>("rsort") {
+                Some(s) => Some(s.clone()),
+                None => None,
+            },
+        };
+        let sort_reverse = matches.get_one::<Sort>("rsort").is_some();
 
         // Format category is overly accepting by clap (so the user knows what
         // is supported) but this will fail if support is not compiled in and
         // give a useful error to the user.
-        let output = matches.value_of("output").map(parse_or_exit::<Format>);
-        let streaming = matches
-            .value_of("streaming")
-            .map(parse_or_exit::<Streaming>);
+        let output = matches.get_one::<Format>("output").cloned();
+        let streaming = matches.get_one("streaming").cloned();
 
         crate::cli_utils::setup_logger(verbose);
 
@@ -290,29 +292,31 @@ impl Cli {
         cli
     }
 
-    pub fn file_input(&self) -> Option<&str> {
-        self.matches.value_of("file_input")
+    pub fn file_input(&self) -> Option<String> {
+        self.matches.get_one::<String>("file_input").cloned()
     }
 
-    pub fn ignored_directories(&self) -> Vec<&str> {
-        let mut ignored_directories: Vec<&str> = Vec::new();
-        if let Some(user_ignored) = self.matches.values_of("exclude") {
-            ignored_directories.extend(user_ignored);
+    pub fn ignored_directories(&self) -> Vec<String> {
+        let mut ignored_directories: Vec<String> = Vec::new();
+        if let Some(user_ignored) = self.matches.get_many::<String>("exclude") {
+            ignored_directories.extend(user_ignored.cloned());
         }
         ignored_directories
     }
 
-    pub fn input(&self) -> Vec<&str> {
-        match self.matches.values_of("input") {
-            Some(vs) => vs.collect(),
-            None => vec!["."],
+    pub fn input(&self) -> Vec<String> {
+        match self.matches.get_many::<String>("input") {
+            Some(vs) => vs.cloned().collect(),
+            None => vec![".".to_owned()],
         }
     }
 
-    pub fn print_supported_languages() -> Result<(), Box<dyn std::error::Error>> {
+    pub fn print_supported_languages() -> Result<(), Box<dyn std::error::Error>>
+    {
         use table_formatter::table::*;
         use table_formatter::{cell, table};
-        let term_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(75) - 8;
+        let term_width =
+            term_size::dimensions().map(|(w, _)| w).unwrap_or(75) - 8;
         let (lang_w, suffix_w) = if term_width <= 80 {
             (term_width / 2, term_width / 2)
         } else {
@@ -326,14 +330,18 @@ impl Cli {
                 padding = Padding::NONE,
                 width = Some(lang_w)
             )
-            .with_formatter(vec![table_formatter::table::FormatterFunc::Normal(Colorize::bold)]),
+            .with_formatter(vec![
+                table_formatter::table::FormatterFunc::Normal(Colorize::bold),
+            ]),
             cell!(
                 "Extensions",
                 align = Align::Left,
                 padding = Padding::new(3, 0),
                 width = Some(suffix_w)
             )
-            .with_formatter(vec![table_formatter::table::FormatterFunc::Normal(Colorize::bold)]),
+            .with_formatter(vec![
+                table_formatter::table::FormatterFunc::Normal(Colorize::bold),
+            ]),
         ];
         let content = LanguageType::list()
             .iter()
@@ -408,7 +416,10 @@ impl Cli {
 
         config.for_each_fn = match self.streaming {
             Some(Streaming::Json) => Some(|l: LanguageType, e| {
-                println!("{}", serde_json::json!({"language": l.name(), "stats": e}));
+                println!(
+                    "{}",
+                    serde_json::json!({"language": l.name(), "stats": e})
+                );
             }),
             Some(Streaming::Simple) => Some(|l: LanguageType, e| {
                 println!(

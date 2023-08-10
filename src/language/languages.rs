@@ -63,7 +63,7 @@ impl Languages {
     /// Populates the `Languages` struct with statistics about languages
     /// provided by [`Language`].
     ///
-    /// Takes a `&[&str]` of paths to recursively traverse, paths can be
+    /// Takes a `&[String]` of paths to recursively traverse, paths can be
     /// relative, absolute or glob paths. a second `&[&str]` of paths to ignore,
     /// these strings use the `.gitignore` syntax, such as `target`
     /// or `**/*.bk`.
@@ -72,14 +72,14 @@ impl Languages {
     /// use tokei::{Config, Languages};
     ///
     /// let mut languages = Languages::new();
-    /// languages.get_statistics(&["."], &[".git", "target"], &Config::default());
+    /// languages.get_statistics(&["."], &[".git".to_string(), "target".to_string()], &Config::default());
     /// ```
     ///
     /// [`Language`]: struct.Language.html
     pub fn get_statistics<A: AsRef<Path>>(
         &mut self,
         paths: &[A],
-        ignored: &[&str],
+        ignored: &[String],
         config: &Config,
     ) {
         utils::fs::get_all_files(paths, ignored, &mut self.inner, config);
@@ -116,7 +116,8 @@ impl Languages {
 
 impl IntoIterator for Languages {
     type Item = <BTreeMap<LanguageType, Language> as IntoIterator>::Item;
-    type IntoIter = <BTreeMap<LanguageType, Language> as IntoIterator>::IntoIter;
+    type IntoIter =
+        <BTreeMap<LanguageType, Language> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()

@@ -1,8 +1,6 @@
 use std::{
     borrow::Cow,
-    fmt,
     io::{self, Write},
-    process,
     str::FromStr,
 };
 
@@ -48,17 +46,6 @@ pub fn setup_logger(verbose_option: u64) {
 
     builder.filter(None, filter_level);
     builder.init();
-}
-
-pub fn parse_or_exit<T>(s: &str) -> T
-where
-    T: FromStr,
-    T::Err: fmt::Display,
-{
-    T::from_str(s).unwrap_or_else(|e| {
-        eprintln!("Error:\n{}", e);
-        process::exit(1);
-    })
 }
 
 #[non_exhaustive]
@@ -111,7 +98,9 @@ impl NumberFormatStyle {
         &["commas", "dots", "plain", "underscores"]
     }
 
-    pub fn get_format(self) -> Result<num_format::CustomFormat, num_format::Error> {
+    pub fn get_format(
+        self,
+    ) -> Result<num_format::CustomFormat, num_format::Error> {
         num_format::CustomFormat::builder()
             .grouping(num_format::Grouping::Standard)
             .separator(self.separator())
@@ -173,7 +162,11 @@ impl<W: Write> Printer<W> {
         )
     }
 
-    pub fn print_language(&mut self, language: &Language, name: &str) -> io::Result<()>
+    pub fn print_language(
+        &mut self,
+        language: &Language,
+        name: &str,
+    ) -> io::Result<()>
     where
         W: Write,
     {
@@ -193,7 +186,10 @@ impl<W: Write> Printer<W> {
         )
     }
 
-    fn print_language_in_print_total(&mut self, language: &Language) -> io::Result<()>
+    fn print_language_in_print_total(
+        &mut self,
+        language: &Language,
+    ) -> io::Result<()>
     where
         W: Write,
     {
@@ -234,7 +230,8 @@ impl<W: Write> Printer<W> {
         name: &str,
         prefix: Option<&str>,
     ) -> io::Result<()> {
-        let mut lang_section_len = self.columns - NO_LANG_ROW_LEN - prefix.map_or(0, str::len);
+        let mut lang_section_len =
+            self.columns - NO_LANG_ROW_LEN - prefix.map_or(0, str::len);
         if inaccurate {
             lang_section_len -= IDENT_INACCURATE.len();
         }
@@ -266,7 +263,11 @@ impl<W: Write> Printer<W> {
         language_type: LanguageType,
         stats: &[CodeStats],
     ) -> io::Result<()> {
-        self.print_language_name(false, &language_type.to_string(), Some(" |-"))?;
+        self.print_language_name(
+            false,
+            &language_type.to_string(),
+            Some(" |-"),
+        )?;
         let mut code = 0;
         let mut comments = 0;
         let mut blanks = 0;
@@ -284,7 +285,8 @@ impl<W: Write> Printer<W> {
                 self.writer,
                 " {:>6} {:>12} {:>12} {:>12} {:>12}",
                 stats.len().to_formatted_string(&self.number_format),
-                (code + comments + blanks).to_formatted_string(&self.number_format),
+                (code + comments + blanks)
+                    .to_formatted_string(&self.number_format),
                 code.to_formatted_string(&self.number_format),
                 comments.to_formatted_string(&self.number_format),
                 blanks.to_formatted_string(&self.number_format),
@@ -312,7 +314,11 @@ impl<W: Write> Printer<W> {
         Ok(())
     }
 
-    pub fn print_results<'a, I>(&mut self, languages: I, compact: bool) -> io::Result<()>
+    pub fn print_results<'a, I>(
+        &mut self,
+        languages: I,
+        compact: bool,
+    ) -> io::Result<()>
     where
         I: Iterator<Item = (&'a LanguageType, &'a Language)>,
     {
@@ -340,7 +346,11 @@ impl<W: Write> Printer<W> {
 
                     if compact {
                         for report in &language.reports {
-                            writeln!(self.writer, "{:1$}", report, self.path_length)?;
+                            writeln!(
+                                self.writer,
+                                "{:1$}",
+                                report, self.path_length
+                            )?;
                         }
                     } else {
                         let (a, b): (Vec<_>, Vec<_>) = language
@@ -351,10 +361,18 @@ impl<W: Write> Printer<W> {
                             let mut first = true;
                             for report in reports.iter() {
                                 if report.stats.blobs.is_empty() {
-                                    writeln!(self.writer, "{:1$}", report, self.path_length)?;
+                                    writeln!(
+                                        self.writer,
+                                        "{:1$}",
+                                        report, self.path_length
+                                    )?;
                                 } else {
                                     if first && a.is_empty() {
-                                        writeln!(self.writer, " {}", report.name.display())?;
+                                        writeln!(
+                                            self.writer,
+                                            " {}",
+                                            report.name.display()
+                                        )?;
                                         first = false;
                                     } else {
                                         writeln!(
@@ -364,7 +382,11 @@ impl<W: Write> Printer<W> {
                                             "-".repeat(
                                                 self.columns
                                                     - 4
-                                                    - report.name.display().to_string().len()
+                                                    - report
+                                                        .name
+                                                        .display()
+                                                        .to_string()
+                                                        .len()
                                             )
                                         )?;
                                     }
@@ -376,7 +398,10 @@ impl<W: Write> Printer<W> {
                                         new_report,
                                         self.path_length - 3
                                     )?;
-                                    self.print_report_total(report, language.inaccurate)?;
+                                    self.print_report_total(
+                                        report,
+                                        language.inaccurate,
+                                    )?;
                                 }
                             }
                         }
@@ -402,7 +427,11 @@ impl<W: Write> Printer<W> {
         stats: &CodeStats,
         inaccurate: bool,
     ) -> io::Result<()> {
-        self.print_language_name(inaccurate, &language_type.to_string(), Some(" |-"))?;
+        self.print_language_name(
+            inaccurate,
+            &language_type.to_string(),
+            Some(" |-"),
+        )?;
 
         writeln!(
             self.writer,
@@ -415,7 +444,11 @@ impl<W: Write> Printer<W> {
         )
     }
 
-    fn print_report_total(&mut self, report: &Report, inaccurate: bool) -> io::Result<()> {
+    fn print_report_total(
+        &mut self,
+        report: &Report,
+        inaccurate: bool,
+    ) -> io::Result<()> {
         if report.stats.blobs.is_empty() {
             return Ok(());
         }
@@ -442,7 +475,8 @@ impl<W: Write> Printer<W> {
         if name_length > self.path_length {
             let mut formatted = String::from("|");
             // Add 1 to the index to account for the '|' we add to the output string
-            let from = find_char_boundary(&name, name_length + 1 - self.path_length);
+            let from =
+                find_char_boundary(&name, name_length + 1 - self.path_length);
             formatted.push_str(&name[from..]);
         }
         self.print_report_total_formatted(name, self.path_length, report)?;
@@ -474,7 +508,10 @@ impl<W: Write> Printer<W> {
         )
     }
 
-    pub fn print_total(&mut self, languages: &tokei::Languages) -> io::Result<()> {
+    pub fn print_total(
+        &mut self,
+        languages: &tokei::Languages,
+    ) -> io::Result<()> {
         let total = languages.total();
         self.print_row()?;
         self.print_language_in_print_total(&total)?;

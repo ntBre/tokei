@@ -22,7 +22,7 @@
 //! // The paths to search. Accepts absolute, relative, and glob paths.
 //! let paths = &["src", "tests"];
 //! // Exclude any path that contains any of these strings.
-//! let excluded = &["target"];
+//! let excluded = &["target".to_string()];
 //! // `Config` allows you to configure what is searched and counted.
 //! let config = Config::default();
 //!
