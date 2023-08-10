@@ -150,7 +150,7 @@ supported_formats!(
     (cbor, "cbor", Cbor [serde_cbor, hex]) =>
         |input| {
             hex::FromHex::from_hex(input)
-                .map_err(|e: hex::FromHexError| <Box<dyn Error>>::from(e))
+                .map_err(<Box<dyn Error>>::from)
                 .and_then(|hex: Vec<_>| Ok(serde_cbor::from_slice(&hex)?))
         },
         |languages| serde_cbor::to_vec(&languages).map(hex::encode),
@@ -225,8 +225,10 @@ mod tests {
             let serialized = variant
                 .print(&langs)
                 .expect(&format!("Failed serializing variant: {:?}", variant));
-            let deserialized = Format::parse(&serialized)
-                .expect(&format!("Failed deserializing variant: {:?}", variant));
+            let deserialized = Format::parse(&serialized).expect(&format!(
+                "Failed deserializing variant: {:?}",
+                variant
+            ));
             assert_eq!(*langs, deserialized);
         }
     }

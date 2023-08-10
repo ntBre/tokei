@@ -16,8 +16,8 @@ pub static START_TEMPLATE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"<template(?:.*lang="(.*)")?.*?>"#).unwrap());
 pub static END_TEMPLATE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"</template>"#).unwrap());
 
-pub static STARTING_MARKDOWN_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"```\S+\s"#).unwrap());
-pub static ENDING_MARKDOWN_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"```\s?"#).unwrap());
+pub static STARTING_MARKDOWN_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"```\S+\s").unwrap());
+pub static ENDING_MARKDOWN_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"```\s?").unwrap());
 
 /// A memory of a regex matched.
 /// The values provided by `Self::start` and `Self::end` are in the same space as the

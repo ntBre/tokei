@@ -1,4 +1,3 @@
-use std::mem;
 use std::process;
 
 use clap::Arg;
@@ -251,11 +250,8 @@ impl Cli {
         // Sorting category should be restricted by clap but parse before we do
         // work just in case.
         let sort = match matches.get_one::<Sort>("sort") {
-            Some(s) => Some(s.clone()),
-            None => match matches.get_one::<Sort>("rsort") {
-                Some(s) => Some(s.clone()),
-                None => None,
-            },
+            Some(s) => Some(*s),
+            None => matches.get_one::<Sort>("rsort").copied(),
         };
         let sort_reverse = matches.get_one::<Sort>("rsort").is_some();
 
@@ -435,7 +431,7 @@ impl Cli {
             _ => None,
         };
 
-        config.types = mem::replace(&mut self.types, None).or(config.types);
+        config.types = self.types.take().or(config.types);
 
         config
     }
