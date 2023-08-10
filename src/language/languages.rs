@@ -116,8 +116,7 @@ impl Languages {
 
 impl IntoIterator for Languages {
     type Item = <BTreeMap<LanguageType, Language> as IntoIterator>::Item;
-    type IntoIter =
-        <BTreeMap<LanguageType, Language> as IntoIterator>::IntoIter;
+    type IntoIter = <BTreeMap<LanguageType, Language> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()

@@ -230,9 +230,9 @@ impl Cli {
         let print_languages = matches.get_flag("languages");
         let verbose = matches.get_count("verbose") as u64;
         let compact = matches.get_flag("compact");
-        let types = matches.get_one::<String>("types").map(|m| {
-            m.split(',').flat_map(str::parse::<LanguageType>).collect()
-        });
+        let types = matches
+            .get_one::<String>("types")
+            .map(|m| m.split(',').flat_map(str::parse::<LanguageType>).collect());
 
         let num_format_style: NumberFormatStyle = matches
             .get_one::<NumberFormatStyle>("num_format_style")
@@ -307,12 +307,10 @@ impl Cli {
         }
     }
 
-    pub fn print_supported_languages() -> Result<(), Box<dyn std::error::Error>>
-    {
+    pub fn print_supported_languages() -> Result<(), Box<dyn std::error::Error>> {
         use table_formatter::table::*;
         use table_formatter::{cell, table};
-        let term_width =
-            term_size::dimensions().map(|(w, _)| w).unwrap_or(75) - 8;
+        let term_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(75) - 8;
         let (lang_w, suffix_w) = if term_width <= 80 {
             (term_width / 2, term_width / 2)
         } else {
@@ -326,18 +324,18 @@ impl Cli {
                 padding = Padding::NONE,
                 width = Some(lang_w)
             )
-            .with_formatter(vec![
-                table_formatter::table::FormatterFunc::Normal(Colorize::bold),
-            ]),
+            .with_formatter(vec![table_formatter::table::FormatterFunc::Normal(
+                Colorize::bold,
+            )]),
             cell!(
                 "Extensions",
                 align = Align::Left,
                 padding = Padding::new(3, 0),
                 width = Some(suffix_w)
             )
-            .with_formatter(vec![
-                table_formatter::table::FormatterFunc::Normal(Colorize::bold),
-            ]),
+            .with_formatter(vec![table_formatter::table::FormatterFunc::Normal(
+                Colorize::bold,
+            )]),
         ];
         let content = LanguageType::list()
             .iter()
@@ -412,10 +410,7 @@ impl Cli {
 
         config.for_each_fn = match self.streaming {
             Some(Streaming::Json) => Some(|l: LanguageType, e| {
-                println!(
-                    "{}",
-                    serde_json::json!({"language": l.name(), "stats": e})
-                );
+                println!("{}", serde_json::json!({"language": l.name(), "stats": e}));
             }),
             Some(Streaming::Simple) => Some(|l: LanguageType, e| {
                 println!(

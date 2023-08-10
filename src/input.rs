@@ -225,10 +225,8 @@ mod tests {
             let serialized = variant
                 .print(&langs)
                 .expect(&format!("Failed serializing variant: {:?}", variant));
-            let deserialized = Format::parse(&serialized).expect(&format!(
-                "Failed deserializing variant: {:?}",
-                variant
-            ));
+            let deserialized = Format::parse(&serialized)
+                .expect(&format!("Failed deserializing variant: {:?}", variant));
             assert_eq!(*langs, deserialized);
         }
     }

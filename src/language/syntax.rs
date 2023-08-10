@@ -7,8 +7,7 @@ use log::Level::Trace;
 use once_cell::sync::Lazy;
 
 use super::embedding::{
-    RegexCache, RegexFamily, ENDING_MARKDOWN_REGEX, END_SCRIPT, END_STYLE,
-    END_TEMPLATE,
+    RegexCache, RegexFamily, ENDING_MARKDOWN_REGEX, END_SCRIPT, END_STYLE, END_TEMPLATE,
 };
 use crate::{stats::CodeStats, utils::ext::SliceExt, Config, LanguageType};
 
@@ -40,11 +39,7 @@ pub(crate) struct FileContext {
 }
 
 impl FileContext {
-    pub fn new(
-        language: LanguageContext,
-        end: usize,
-        stats: CodeStats,
-    ) -> Self {
+    pub fn new(language: LanguageContext, end: usize, stats: CodeStats) -> Self {
         Self {
             language,
             stats,
@@ -85,8 +80,7 @@ pub(crate) struct SharedMatchers {
 
 impl SharedMatchers {
     pub fn new(language: LanguageType) -> Arc<Self> {
-        static MATCHERS: Lazy<DashMap<LanguageType, Arc<SharedMatchers>>> =
-            Lazy::new(DashMap::new);
+        static MATCHERS: Lazy<DashMap<LanguageType, Arc<SharedMatchers>>> = Lazy::new(DashMap::new);
 
         MATCHERS
             .entry(language)
@@ -226,8 +220,7 @@ impl SyntaxCounter {
             }};
         }
 
-        let regex_cache =
-            RegexCache::build(self.shared.language, lines, start, end);
+        let regex_cache = RegexCache::build(self.shared.language, lines, start, end);
 
         for i in start..end {
             if skip != 0 {
@@ -254,9 +247,7 @@ impl SyntaxCounter {
                 continue;
             }
 
-            if let Some(child) =
-                self.parse_context(lines, i, end, config, &regex_cache)
-            {
+            if let Some(child) = self.parse_context(lines, i, end, config, &regex_cache) {
                 return AnalysisReport::ChildLanguage(child);
             }
 
@@ -309,12 +300,13 @@ impl SyntaxCounter {
                 .line_comments
                 .iter()
                 .any(|c| trimmed.starts_with(c.as_bytes()))
-                || self.shared.any_multi_line_comments.iter().any(
-                    |(start, end)| {
-                        trimmed.starts_with(start.as_bytes())
-                            && trimmed.ends_with(end.as_bytes())
-                    },
-                )
+                || self
+                    .shared
+                    .any_multi_line_comments
+                    .iter()
+                    .any(|(start, end)| {
+                        trimmed.starts_with(start.as_bytes()) && trimmed.ends_with(end.as_bytes())
+                    })
         };
         let starts_with_comment = || {
             let quote = match self.stack.last() {
@@ -325,17 +317,13 @@ impl SyntaxCounter {
             self.shared
                 .any_multi_line_comments
                 .iter()
-                .any(|(start, end)| {
-                    end == quote && trimmed.starts_with(start.as_bytes())
-                })
+                .any(|(start, end)| end == quote && trimmed.starts_with(start.as_bytes()))
         };
 
         // `Some(true)` in order to respect the current configuration.
         #[allow(clippy::if_same_then_else)]
         if self.quote.is_some() {
-            if self.quote_is_doc_quote
-                && config.treat_doc_strings_as_comments == Some(true)
-            {
+            if self.quote_is_doc_quote && config.treat_doc_strings_as_comments == Some(true) {
                 self.quote.map_or(false, |q| line.starts_with(q.as_bytes()))
                     || (self.quote.is_some())
             } else {
@@ -382,35 +370,27 @@ impl SyntaxCounter {
 
                 let opening_fence = md.starts_in_range(start, end)?;
                 let start_of_code = opening_fence.end();
-                let closing_fence =
-                    ENDING_MARKDOWN_REGEX.find(&lines[start_of_code..]);
+                let closing_fence = ENDING_MARKDOWN_REGEX.find(&lines[start_of_code..]);
                 if let Some(m) = &closing_fence {
                     trace!("{:?}", String::from_utf8_lossy(m.as_bytes()));
                 }
-                let end_of_code = closing_fence.map_or_else(
-                    || lines.len(),
-                    |fence| start_of_code + fence.start(),
-                );
-                let end_of_code_block = closing_fence.map_or_else(
-                    || lines.len(),
-                    |fence| start_of_code + fence.end(),
-                );
+                let end_of_code = closing_fence
+                    .map_or_else(|| lines.len(), |fence| start_of_code + fence.start());
+                let end_of_code_block =
+                    closing_fence.map_or_else(|| lines.len(), |fence| start_of_code + fence.end());
                 let balanced = closing_fence.is_some();
                 let identifier = &opening_fence.as_bytes().trim()[3..];
 
-                let language =
-                    identifier.split(|&b| b == b',').find_map(|s| {
-                        LanguageType::from_str(&String::from_utf8_lossy(s)).ok()
-                    })?;
+                let language = identifier
+                    .split(|&b| b == b',')
+                    .find_map(|s| LanguageType::from_str(&String::from_utf8_lossy(s)).ok())?;
                 trace!(
                     "{} BLOCK: {:?}",
                     language,
                     String::from_utf8_lossy(&lines[start_of_code..end_of_code])
                 );
-                let stats = language.parse_from_slice(
-                    lines[start_of_code..end_of_code].trim(),
-                    config,
-                );
+                let stats =
+                    language.parse_from_slice(lines[start_of_code..end_of_code].trim(), config);
 
                 Some(FileContext::new(
                     LanguageContext::Markdown { balanced, language },
@@ -434,10 +414,7 @@ impl SyntaxCounter {
 
                 while let Some((start, end)) = stepper.next(lines) {
                     if lines[start..].trim().starts_with(comment_syntax) {
-                        trace!(
-                            "{}",
-                            String::from_utf8_lossy(&lines[start..end])
-                        );
+                        trace!("{}", String::from_utf8_lossy(&lines[start..end]));
                         let line = lines[start..end].trim_start();
                         let stripped_line = &line[3.min(line.len())..];
                         markdown.extend_from_slice(stripped_line);
@@ -448,12 +425,8 @@ impl SyntaxCounter {
                     }
                 }
 
-                trace!(
-                    "Markdown found: {:?}",
-                    String::from_utf8_lossy(&markdown)
-                );
-                let doc_block = LanguageType::Markdown
-                    .parse_from_slice(markdown.trim(), config);
+                trace!("Markdown found: {:?}", String::from_utf8_lossy(&markdown));
+                let doc_block = LanguageType::Markdown.parse_from_slice(markdown.trim(), config);
 
                 Some(FileContext::new(
                     LanguageContext::Rust,
@@ -462,19 +435,14 @@ impl SyntaxCounter {
                 ))
             }
             RegexFamily::HtmlLike(html) => {
-                if let Some(mut captures) =
-                    html.start_script_in_range(start, end)
-                {
+                if let Some(mut captures) = html.start_script_in_range(start, end) {
                     let start_of_code = captures.next().unwrap().end();
-                    let closing_tag =
-                        END_SCRIPT.find(&lines[start_of_code..])?;
+                    let closing_tag = END_SCRIPT.find(&lines[start_of_code..])?;
                     let end_of_code = start_of_code + closing_tag.start();
                     let language = captures
                         .next()
                         .and_then(|m| {
-                            LanguageType::from_mime(&String::from_utf8_lossy(
-                                m.as_bytes().trim(),
-                            ))
+                            LanguageType::from_mime(&String::from_utf8_lossy(m.as_bytes().trim()))
                         })
                         .unwrap_or(LanguageType::JavaScript);
                     let script_contents = &lines[start_of_code..end_of_code];
@@ -483,8 +451,7 @@ impl SyntaxCounter {
                     }
 
                     let stats = language.parse_from_slice(
-                        script_contents
-                            .trim_first_and_last_line_of_whitespace(),
+                        script_contents.trim_first_and_last_line_of_whitespace(),
                         config,
                     );
                     Some(FileContext::new(
@@ -492,19 +459,15 @@ impl SyntaxCounter {
                         end_of_code,
                         stats,
                     ))
-                } else if let Some(mut captures) =
-                    html.start_style_in_range(start, end)
-                {
+                } else if let Some(mut captures) = html.start_style_in_range(start, end) {
                     let start_of_code = captures.next().unwrap().end();
-                    let closing_tag =
-                        END_STYLE.find(&lines[start_of_code..])?;
+                    let closing_tag = END_STYLE.find(&lines[start_of_code..])?;
                     let end_of_code = start_of_code + closing_tag.start();
                     let language = captures
                         .next()
                         .and_then(|m| {
                             LanguageType::from_str(
-                                &String::from_utf8_lossy(m.as_bytes().trim())
-                                    .to_lowercase(),
+                                &String::from_utf8_lossy(m.as_bytes().trim()).to_lowercase(),
                             )
                             .ok()
                         })
@@ -523,19 +486,15 @@ impl SyntaxCounter {
                         end_of_code,
                         stats,
                     ))
-                } else if let Some(mut captures) =
-                    html.start_template_in_range(start, end)
-                {
+                } else if let Some(mut captures) = html.start_template_in_range(start, end) {
                     let start_of_code = captures.next().unwrap().end();
-                    let closing_tag =
-                        END_TEMPLATE.find(&lines[start_of_code..])?;
+                    let closing_tag = END_TEMPLATE.find(&lines[start_of_code..])?;
                     let end_of_code = start_of_code + closing_tag.start();
                     let language = captures
                         .next()
                         .and_then(|m| {
                             LanguageType::from_str(
-                                &String::from_utf8_lossy(m.as_bytes().trim())
-                                    .to_lowercase(),
+                                &String::from_utf8_lossy(m.as_bytes().trim()).to_lowercase(),
                             )
                             .ok()
                         })
@@ -546,8 +505,7 @@ impl SyntaxCounter {
                         return None;
                     }
                     let stats = language.parse_from_slice(
-                        template_contents
-                            .trim_first_and_last_line_of_whitespace(),
+                        template_contents.trim_first_and_last_line_of_whitespace(),
                         config,
                     );
                     Some(FileContext::new(
@@ -611,21 +569,19 @@ impl SyntaxCounter {
     }
 
     #[inline]
-    pub(crate) fn parse_end_of_quote(
-        &mut self,
-        window: &[u8],
-    ) -> Option<usize> {
-        if self._is_string_mode() && window.starts_with(self.quote?.as_bytes())
-        {
+    pub(crate) fn parse_end_of_quote(&mut self, window: &[u8]) -> Option<usize> {
+        if self._is_string_mode() && window.starts_with(self.quote?.as_bytes()) {
             let quote = self.quote.take().unwrap();
             trace!("End {:?}", quote);
             Some(quote.len())
         } else if !self.quote_is_verbatim
             && (window.starts_with(br"\\")
                 || (window.starts_with(br"\")
-                    && self.shared.string_literals.iter().any(|(start, _)| {
-                        window[1..].starts_with(start.as_bytes())
-                    })))
+                    && self
+                        .shared
+                        .string_literals
+                        .iter()
+                        .any(|(start, _)| window[1..].starts_with(start.as_bytes()))))
         {
             // Tell the state machine to skip the next character because it
             // has been escaped if the string isn't a verbatim string.
@@ -636,10 +592,7 @@ impl SyntaxCounter {
     }
 
     #[inline]
-    pub(crate) fn parse_multi_line_comment(
-        &mut self,
-        window: &[u8],
-    ) -> Option<usize> {
+    pub(crate) fn parse_multi_line_comment(&mut self, window: &[u8]) -> Option<usize> {
         if self.quote.is_some() {
             return None;
         }
@@ -672,10 +625,7 @@ impl SyntaxCounter {
     }
 
     #[inline]
-    pub(crate) fn parse_end_of_multi_line(
-        &mut self,
-        window: &[u8],
-    ) -> Option<usize> {
+    pub(crate) fn parse_end_of_multi_line(&mut self, window: &[u8]) -> Option<usize> {
         if self
             .stack
             .last()
